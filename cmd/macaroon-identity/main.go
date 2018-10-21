@@ -23,7 +23,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s := authservice.NewAuthService(flags.Endpoint, logger, keyPair, flags.AuthValidity)
+	s := authservice.New(authservice.AuthServiceParams{
+		ListenAddr:       flags.Endpoint,
+		KeyPair:          keyPair,
+		MacaroonValidity: flags.AuthValidity,
+		Logger:           logger,
+	})
 	if err := s.Checker.LoadCreds(flags.CredsFile); err != nil {
 		panic(err)
 	}

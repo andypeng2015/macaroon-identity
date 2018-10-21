@@ -34,8 +34,12 @@ var requiredGroups = []string{
 }
 
 func setupAuthService(logger *log.Logger) *authservice.AuthService {
-	s := authservice.NewAuthService(
-		"localhost:0", logger, bakery.MustGenerateKey(), macaroonValidity)
+	s := authservice.New(authservice.AuthServiceParams{
+		ListenAddr:       "localhost:0",
+		KeyPair:          bakery.MustGenerateKey(),
+		MacaroonValidity: macaroonValidity,
+		Logger:           logger,
+	})
 	s.Checker.AddCreds(sampleCredentials)
 	s.Checker.AddGroups(sampleGroups)
 	if err := s.Start(true); err != nil {
@@ -46,14 +50,13 @@ func setupAuthService(logger *log.Logger) *authservice.AuthService {
 }
 
 func setupTargetService(logger *log.Logger, authService *authservice.AuthService, background bool) *targetservice.TargetService {
-	t := targetservice.New(
-		targetservice.TargetServiceParams{
-			Endpoint:       "localhost:0",
-			AuthEndpoint:   authService.Endpoint(),
-			AuthKey:        &authService.KeyPair.Public,
-			RequiredGroups: requiredGroups,
-			Logger:         logger,
-		})
+	t := targetservice.New(targetservice.TargetServiceParams{
+		Endpoint:       "localhost:0",
+		AuthEndpoint:   authService.Endpoint(),
+		AuthKey:        &authService.KeyPair.Public,
+		RequiredGroups: requiredGroups,
+		Logger:         logger,
+	})
 	if err := t.Start(background); err != nil {
 		panic(err)
 	}

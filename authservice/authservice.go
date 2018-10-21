@@ -50,6 +50,14 @@ type loginResponse struct {
 	Token *httpbakery.DischargeToken `json:"token"`
 }
 
+// AuthServiceParams defines parameters to create an AuthService
+type AuthServiceParams struct {
+	ListenAddr       string
+	KeyPair          *bakery.KeyPair
+	MacaroonValidity time.Duration
+	Logger           *log.Logger
+}
+
 // AuthService is an HTTP service for authentication using macaroons.
 type AuthService struct {
 	httpservice.HTTPService
@@ -62,29 +70,28 @@ type AuthService struct {
 	uuidGenerator *fastuuid.Generator
 }
 
-// NewAuthService returns an AuthService.
-func NewAuthService(listenAddr string, logger *log.Logger, keyPair *bakery.KeyPair, macaroonValidity time.Duration) *AuthService {
+// New returns an AuthService.
+func New(params AuthServiceParams) *AuthService {
 	mux := http.NewServeMux()
 	s := AuthService{
 		HTTPService: httpservice.HTTPService{
 			Name:       "auth",
-			ListenAddr: listenAddr,
-			Logger:     logger,
+			ListenAddr: params.ListenAddr,
+			Logger:     params.Logger,
 			Mux:        mux,
 		},
-		KeyPair:          keyPair,
+		KeyPair:          params.KeyPair,
 		Checker:          credentials.NewChecker(),
-		MacaroonValidity: macaroonValidity,
+		MacaroonValidity: params.MacaroonValidity,
 		uuidGenerator:    fastuuid.MustNewGenerator(),
 		userTokens:       map[string]string{},
 	}
 	mux.Handle(formURL, http.HandlerFunc(s.formHandler))
 
-	discharger := httpbakery.NewDischarger(
-		httpbakery.DischargerParams{
-			Key:     keyPair,
-			Checker: httpbakery.ThirdPartyCaveatCheckerFunc(s.thirdPartyChecker),
-		})
+	discharger := httpbakery.NewDischarger(httpbakery.DischargerParams{
+		Key:     params.KeyPair,
+		Checker: httpbakery.ThirdPartyCaveatCheckerFunc(s.thirdPartyChecker),
+	})
 	discharger.AddMuxHandlers(mux, "/")
 	return &s
 }
