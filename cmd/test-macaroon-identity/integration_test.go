@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/albertodonato/macaroon-identity/authservice"
+	"github.com/albertodonato/macaroon-identity/targetservice"
 )
 
 func TestIntegration(t *testing.T) {
@@ -19,7 +20,7 @@ type IntegrationTestSuite struct {
 	suite.Suite
 
 	authService   *authservice.AuthService
-	targetService *TargetService
+	targetService *targetservice.TargetService
 }
 
 func (s *IntegrationTestSuite) SetupSuite() {

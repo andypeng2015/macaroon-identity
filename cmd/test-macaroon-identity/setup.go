@@ -7,6 +7,7 @@ import (
 	"gopkg.in/macaroon-bakery.v2/bakery"
 
 	"github.com/albertodonato/macaroon-identity/authservice"
+	"github.com/albertodonato/macaroon-identity/targetservice"
 )
 
 const macaroonValidity = 1 * time.Minute
@@ -44,9 +45,15 @@ func setupAuthService(logger *log.Logger) *authservice.AuthService {
 	return s
 }
 
-func setupTargetService(logger *log.Logger, authService *authservice.AuthService, background bool) *TargetService {
-	t := NewTargetService(
-		"localhost:0", authService.Endpoint(), &authService.KeyPair.Public, requiredGroups, logger)
+func setupTargetService(logger *log.Logger, authService *authservice.AuthService, background bool) *targetservice.TargetService {
+	t := targetservice.New(
+		targetservice.TargetServiceParams{
+			Endpoint:       "localhost:0",
+			AuthEndpoint:   authService.Endpoint(),
+			AuthKey:        &authService.KeyPair.Public,
+			RequiredGroups: requiredGroups,
+			Logger:         logger,
+		})
 	if err := t.Start(background); err != nil {
 		panic(err)
 	}

@@ -1,4 +1,4 @@
-package main
+package targetservice
 
 import (
 	"fmt"
@@ -17,6 +17,15 @@ import (
 	"github.com/albertodonato/macaroon-identity/httpservice"
 )
 
+// TargetServiceParams defines parameters to create a TargetService
+type TargetServiceParams struct {
+	Endpoint       string
+	AuthEndpoint   string
+	AuthKey        *bakery.PublicKey
+	RequiredGroups []string
+	Logger         *log.Logger
+}
+
 // TargetService is an HTTP service which requires macaroon-based authentication.
 type TargetService struct {
 	httpservice.HTTPService
@@ -29,36 +38,36 @@ type TargetService struct {
 	bakery       *identchecker.Bakery
 }
 
-// NewTargetService returns a TargetService instance.
-func NewTargetService(endpoint string, authEndpoint string, authKey *bakery.PublicKey, requiredGroups []string, logger *log.Logger) *TargetService {
+// New returns a TargetService instance.
+func New(params TargetServiceParams) *TargetService {
 	key := bakery.MustGenerateKey()
 
 	locator := httpbakery.NewThirdPartyLocator(nil, nil)
 	locator.AllowInsecure()
 
-	idClient, _ := candidclient.New(candidclient.NewParams{
-		BaseURL: authEndpoint,
+	candidClient, _ := candidclient.New(candidclient.NewParams{
+		BaseURL: params.AuthEndpoint,
 	})
 	authorizer := &authorizer{}
 	b := identchecker.NewBakery(identchecker.BakeryParams{
 		Key:            key,
-		Location:       endpoint,
+		Location:       params.Endpoint,
 		Locator:        locator,
 		Checker:        httpbakery.NewChecker(),
-		IdentityClient: idClient,
+		IdentityClient: candidClient,
 		Authorizer:     authorizer,
 	})
 	mux := http.NewServeMux()
 	t := TargetService{
 		HTTPService: httpservice.HTTPService{
 			Name:       "serv",
-			ListenAddr: endpoint,
-			Logger:     logger,
+			ListenAddr: params.Endpoint,
+			Logger:     params.Logger,
 			Mux:        mux,
 		},
-		RequiredGroups: requiredGroups,
-		authEndpoint:   authEndpoint,
-		authKey:        authKey,
+		RequiredGroups: params.RequiredGroups,
+		authEndpoint:   params.AuthEndpoint,
+		authKey:        params.AuthKey,
 		keyPair:        key,
 		bakery:         b,
 	}
